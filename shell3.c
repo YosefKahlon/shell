@@ -7,6 +7,12 @@
 #include "unistd.h"
 #include <string.h>
 
+
+
+
+
+
+
 int main() {
 char command[1024];
 char *token;
@@ -71,9 +77,8 @@ while (1)
     else 
         redirect = 0; 
 
-    /* for commands not part of the shell command language */ 
-
-    if (fork() == 0) { 
+    /* for commands not part of the shell command language */
+    if (fork() == 0) {
         /* redirection of IO ? */
         if (redirect) {
             fd = creat(outfile, 0660); 

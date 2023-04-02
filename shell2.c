@@ -44,24 +44,28 @@ while (1)
         amper = 0; 
 
     if (! strcmp(argv[i - 2], ">")) {
+
         redirect = 1;
         argv[i - 2] = NULL;
+
         outfile = argv[i - 1];
+
         }
     else 
         redirect = 0; 
 
     /* for commands not part of the shell command language */ 
 
-    if (fork() == 0) { 
+    if (fork() == 0) {
         /* redirection of IO ? */
         if (redirect) {
-            fd = creat(outfile, 0660); 
-            close (STDOUT_FILENO) ; 
-            dup(fd); 
-            close(fd); 
+            fd = creat(outfile, 0660);
+            close (STDOUT_FILENO) ;
+            dup(fd);
+            close(fd);
             /* stdout is now redirected */
-        } 
+        }
+
         execvp(argv[0], argv);
     }
     /* parent continues here */

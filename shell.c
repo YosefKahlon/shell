@@ -11,6 +11,12 @@
 #define COMMAND_SIZE 10
 #define COMMAND_LENGTH  10
 
+//q8. todo  ------------- Control C ------------------------
+void sigint_handler(int sig) {
+    printf("You typed Control-C!\n");
+    fflush(stdout);
+}
+
 int main() {
 
     char command[1024];
@@ -19,6 +25,7 @@ int main() {
     int i, fd, amper, redirect, retid, status;
     char *argv[10];
 
+    signal(SIGINT, sigint_handler);
 
     char path[256];
     int flag_prompt = 0;
@@ -26,9 +33,12 @@ int main() {
     char *last_command = NULL;
     char *prompt = "hello";
 
-    char command_list[COMMAND_SIZE][COMMAND_LENGTH]  ={"echo","cd","prompt","!!","quit"};
 
 
+    char command_list[COMMAND_SIZE][COMMAND_LENGTH] = {"echo", "cd", "prompt", "!!", "quit"};
+
+    //char navigator[20][COMMAND_LENGTH = {};
+    int navigator_index = 0;
     while (1) {
 
         //get the current directory path of this project
@@ -41,9 +51,11 @@ int main() {
 
 
 
-        printf("%s: ",prompt);
+
+        printf("%s: ", prompt);
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
+
 
 
 
@@ -61,41 +73,55 @@ int main() {
         if (argv[0] == NULL)
             continue;
         /** ------------------------- My code ---------------------------- */
-        //q1. --------- >> ----------------------
-        if(strcmp(argv[i-2],">>")==EQUAL){
+        //todo q1. --------- >> ----------------------
+        if (strcmp(argv[i - 2], ">>") == EQUAL) {
+//
+//            for (int j = 0; j < COMMAND_SIZE; ++j) {
+//                if (strcmp(argv[0], command_list[j]) == EQUAL) {
+//                    redirect = 1;
+//                    printf("%s argv[i - 2] \n ",argv[i - 2]);
+//                    printf("%s argv[i - 1] \n ",argv[i - 1]);
+//;                    argv[i - 2] = NULL;
+//                    outfile = argv[i - 1];
+//                    break;
+//                } else {
+//                    redirect = 0;
+//                }
+//            }
+
+            continue;
 
 
-            for (int j = 0; j < COMMAND_SIZE; ++j) {
-                if(strcmp(argv[0],command_list[j])==EQUAL){
-
-
-                    break;
-                }
-                
-            }
         }
 
-        //q2. -------------------prompt--------------------
-       else if (strcmp(argv[0], "prompt") == EQUAL) {
+
+            //q2. -------------------prompt--------------------
+        else if (strcmp(argv[0], "prompt") == EQUAL) {
             if (strcmp(argv[1], "=") == EQUAL) {
                 if (argv[2] != NULL) {
                     if (flag_prompt == 0) {
                         //free(prompt);
                         prompt = (char *) malloc(sizeof(argv[2]));
                         strcpy(prompt, argv[2]);
-                        flag_prompt =1;
+                        flag_prompt = 1;
                     } else {
                         free(prompt);
                         prompt = (char *) malloc(sizeof(argv[2]));
                         strcpy(prompt, argv[2]);
                     }
                 }
+                else {
+                    printf("Bad syntax\n");
+                    status = 2;
+                }
+
+
             }
             continue;
         }
 
-        //q3. -------- echo-----------------
-       else if (strcmp(argv[0], "echo") == EQUAL) {
+            //todo q3. -------- echo-----------------
+        else if (strcmp(argv[0], "echo") == EQUAL) {
             // todo null check
 
             if (strcmp(argv[i - 1], "$?") != EQUAL) {
@@ -106,7 +132,8 @@ int main() {
                 // q4. -------- echo $? -----------------
             else {
                 // todo idk if its work good
-                printf("%d \n", WEXITSTATUS(status));
+                //printf("%d \n", WEXITSTATUS(status));
+                printf("%d \n", status);
             }
 
         }
@@ -132,6 +159,10 @@ int main() {
         else if (strcmp(argv[0], "quit") == EQUAL) {
             exit(0);
         }
+            //todo q10. ------------- variable ----------
+        else if (argv[0][0] == '$' && strcmp(argv[1], "=") == EQUAL) {
+            printf("%s \n", argv[2]);
+        }
 
             /** ------------------------- End  of my code ---------------------------- */
 
@@ -152,7 +183,7 @@ int main() {
 
             /* for commands not part of the shell command language */
 
-        else if (fork() == 0) {
+         if (fork() == 0) {
 
             /* redirection of IO ? */
             if (redirect) {
@@ -175,12 +206,15 @@ int main() {
         last_command = (char *) malloc(sizeof(argv[0]));
 
         strcpy(last_command, argv[0]);
+       // navigator[i] = last_command;
+
 
         /* parent continues here */
         if (amper == 0) {
             retid = wait(&status);
         }
     }
+
     if (last_command != NULL) {
         free(last_command);
     }
