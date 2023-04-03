@@ -1,0 +1,5 @@
+total 64
+-rwxrwxr-x 1 barak barak 21424 Apr  3 21:27 shell
+-rwxrwxr-x 1 barak barak 19480 Apr  3 20:58 shell1
+-rwxrwxr-x 1 barak barak 19864 Apr  3 21:33 shell2
+-rw-rw---- 1 barak barak     0 Apr  3 21:33 shell2file.txt
