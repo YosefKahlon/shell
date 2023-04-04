@@ -159,23 +159,23 @@ int main() {
             /** ------------------------- End  of my code ---------------------------- */
 
 
-//        /* Does command line end with & */
-//        if (!strcmp(argv[i - 1], "&")) {
-//            amper = 1;
-//            argv[i - 1] = NULL;
-//        } else
-//            amper = 0;
-//
-//        if (!strcmp(argv[i - 2], ">")) {
-//            redirect = 1;
-//            argv[i - 2] = NULL;
-//            outfile = argv[i - 1];
-//        } else{
-//            redirect = 0;}
+       /* Does command line end with & */
+       if (!strcmp(argv[i - 1], "&")) {
+           amper = 1;
+           argv[i - 1] = NULL;
+       } else
+           amper = 0;
+
+       if (!strcmp(argv[i - 2], ">")) {
+           redirect = 1;
+           argv[i - 2] = NULL;
+           outfile = argv[i - 1];
+       } else {
+           redirect = 0;}
 
             /* for commands not part of the shell command language */
 
-        else if (fork() == 0) {
+        if (fork() == 0) {
 
             /* redirection of IO ? */
             if (redirect) {

@@ -23,7 +23,7 @@ while (1)
     /* parse command line */
     i = 0;
     token = strtok (command," ");
-    while (token != NULL)
+    while (token != NULL) 
     {
         argv[i] = token;
         token = strtok (NULL, " ");
@@ -59,7 +59,7 @@ while (1)
             fd = creat(outfile, 0660); 
             close (STDOUT_FILENO) ; 
             dup(fd); 
-            close(fd); 
+            close(fd);
             /* stdout is now redirected */
         } 
         execvp(argv[0], argv);
