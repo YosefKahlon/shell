@@ -6,11 +6,14 @@
 #include "stdlib.h"
 #include "unistd.h"
 #include <string.h>
+#include "stackCommands.c"
 
 #define EQUAL 0
 
 int main()
 {
+    Stack *stack_commands = create_stack();
+
     char command[1024];
     char *token;
     int i;
@@ -33,6 +36,15 @@ int main()
         printf("%s: ", prompt);
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
+
+        if ((strcmp(command, "!!") == EQUAL) && stack_commands->size > 0)
+        {
+            strcpy(command, top(stack_commands));
+        } else if (command != NULL)
+        {
+            push(stack_commands, command);
+        }
+        
         piping = 0;
 
         /* parse command line */
@@ -138,16 +150,15 @@ int main()
             continue;
         }
 
-        if (strcmp(argv1[0], "echo") == EQUAL) {
+        if (strcmp(argv1[0], "echo") == EQUAL)
+        {
             // todo null check
 
-            if (strcmp(argv1[i - 1], "$?") == EQUAL) {
+            if (strcmp(argv1[i - 1], "$?") == EQUAL)
+            {
                 check_status = 1;
                 sprintf(str_status, "%d", WEXITSTATUS(status));
-                strcpy(argv1[i-1], str_status);
-                
-
-
+                strcpy(argv1[i - 1], str_status);
             }
         }
 
@@ -219,9 +230,14 @@ int main()
         /* waits for child to exit if required */
         if (amper == 0)
             retid = wait(&status);
+        
     }
+
+    // operations at the end of the program.
     if (prompt != NULL)
     {
         free(prompt);
     }
+
+    destroy_stack(stack_commands);
 }
