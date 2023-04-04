@@ -24,6 +24,9 @@ int main()
     int was_command = 0;
     char *last_command = NULL;
     char *prompt = "hello";
+    char str_status[10];
+
+    int check_status = 0;
 
     while (1)
     {
@@ -135,6 +138,19 @@ int main()
             continue;
         }
 
+        if (strcmp(argv1[0], "echo") == EQUAL) {
+            // todo null check
+
+            if (strcmp(argv1[i - 1], "$?") == EQUAL) {
+                check_status = 1;
+                sprintf(str_status, "%d", WEXITSTATUS(status));
+                strcpy(argv1[i-1], str_status);
+                
+
+
+            }
+        }
+
         /* for commands not part of the shell command language */
 
         if (fork() == 0) // > >> 2> 2>>
@@ -164,11 +180,10 @@ int main()
                 {
                     close(STDOUT_FILENO);
                 }
+                dup(fd);
+                close(fd);
+                /* stdout is now redirected */
             }
-
-            dup(fd);
-            close(fd);
-            /* stdout is now redirected */
 
             if (piping)
             {
@@ -194,7 +209,9 @@ int main()
             }
             else
             {
-                printf("Got execvp\n");
+                // printf("Got execvp\n");
+                // printf("%s\n", argv1[0]);
+                // printf("%s\n", argv1[1]);
                 execvp(argv1[0], argv1);
             }
         }
