@@ -37,16 +37,38 @@ int main()
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
 
-        if ((strcmp(command, "!!") == EQUAL) && stack_commands->size > 0)
+        /* Is command empty */
+        if (command[0] == '\0')
         {
-            strcpy(command, top(stack_commands));
-        } else if (command != NULL)
-        {
-            push(stack_commands, command);
+            printf("Empty command\n");
+            continue;
         }
+
+        /* Exit command */
+        if (strcmp(command, "quit") == EQUAL)
+        {
+            exit(0);
+        }
+
+        /* Execute the last command */
+        if (stack_commands->size > 0)
+        {
+            if ((strcmp(command, "!!") == EQUAL))
+            {
+                strcpy(command, top(stack_commands));
+            }
+            else
+            {
+                push(stack_commands, command);
+            }
+        }
+        else
+            continue;
+
+
+
         
         piping = 0;
-
         /* parse command line */
         i = 0;
         token = strtok(command, " ");
@@ -63,10 +85,6 @@ int main()
         }
         argv1[i] = NULL;
         argc1 = i;
-
-        /* Is command empty */
-        if (argv1[0] == NULL)
-            continue;
 
         /* Does command contain pipe */
         if (piping)
@@ -230,7 +248,6 @@ int main()
         /* waits for child to exit if required */
         if (amper == 0)
             retid = wait(&status);
-        
     }
 
     // operations at the end of the program.
