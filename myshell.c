@@ -7,12 +7,16 @@
 #include "unistd.h"
 #include <string.h>
 #include "stackCommands.c"
+#include "var_table.c"
 
 #define EQUAL 0
+#define MAX_SIZE 50
+#define VAR_TAG '$'
 
 int main()
 {
     Stack *stack_commands = create_stack();
+    VarMap *vartbl = createVarMap(MAX_SIZE);
 
     char command[1024];
     char *token;
@@ -30,6 +34,7 @@ int main()
     char str_status[10];
 
     int check_status = 0;
+    char variable[256];
 
     while (1)
     {
@@ -62,12 +67,7 @@ int main()
                 push(stack_commands, command);
             }
         }
-        else
-            continue;
 
-
-
-        
         piping = 0;
         /* parse command line */
         i = 0;
@@ -144,9 +144,10 @@ int main()
             redirect = 0;
 
         // q2. -------------------prompt--------------------
-        if (strcmp(argv1[0], "prompt") == EQUAL)
+        if (strcmp(argv1[1], "=") == EQUAL)
         {
-            if (strcmp(argv1[1], "=") == EQUAL)
+            printf("found the =\n");
+            if (strcmp(argv1[0], "prompt") == EQUAL)
             {
                 if (argv1[2] != NULL)
                 {
@@ -165,6 +166,17 @@ int main()
                     }
                 }
             }
+            else if (argv1[0][0] == VAR_TAG) /* save variables in the hashtable */
+            {
+                printf("We have var here\n");
+                if (argv1[2] != NULL)
+                {
+                    put(vartbl, argv1[0], argv1[2]);
+                    printf("this is the var we saved: ");
+                    printf(" - %s\n",get(vartbl, argv1[0]));
+                }
+            }
+
             continue;
         }
 
@@ -177,7 +189,20 @@ int main()
                 check_status = 1;
                 sprintf(str_status, "%d", WEXITSTATUS(status));
                 strcpy(argv1[i - 1], str_status);
+            } 
+            else if (argv1[1] != NULL && argv1[2] == NULL)
+            {
+                printf("trying to assign var\n");
+                strcpy(variable, argv1[1]);
+                printf("successfuly assigned var\n");
+                if (variable[0] == VAR_TAG)
+                {
+                    printf("trying to access map\n");
+                    strcpy(argv1[1], get(vartbl, variable));
+                }
+                
             }
+            
         }
 
         /* for commands not part of the shell command language */
@@ -257,4 +282,5 @@ int main()
     }
 
     destroy_stack(stack_commands);
+    destroyVarMap(vartbl);
 }
