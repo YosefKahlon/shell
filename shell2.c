@@ -14,6 +14,8 @@ char *outfile;
 int i, fd, amper, redirect, retid, status;
 char *argv[10];
 
+
+
 while (1)
 {
     printf("hello: ");

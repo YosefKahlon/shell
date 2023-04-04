@@ -7,6 +7,8 @@
 #include "unistd.h"
 #include <string.h>
 
+#define EQUAL 0
+
 int main()
 {
     char command[1024];
@@ -17,9 +19,15 @@ int main()
     int fildes[2];
     char *argv1[10], *argv2[10];
 
+    char path[256];
+    int flag_prompt = 0;
+    int was_command = 0;
+    char *last_command = NULL;
+    char *prompt = "hello";
+
     while (1)
     {
-        printf("hello: ");
+        printf("%s: ", prompt);
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
         piping = 0;
@@ -102,6 +110,31 @@ int main()
         else
             redirect = 0;
 
+        // q2. -------------------prompt--------------------
+        if (strcmp(argv1[0], "prompt") == EQUAL)
+        {
+            if (strcmp(argv1[1], "=") == EQUAL)
+            {
+                if (argv1[2] != NULL)
+                {
+                    if (flag_prompt == 0)
+                    {
+                        // free(prompt);
+                        prompt = (char *)malloc(sizeof(argv1[2]));
+                        strcpy(prompt, argv1[2]);
+                        flag_prompt = 1;
+                    }
+                    else
+                    {
+                        free(prompt);
+                        prompt = (char *)malloc(sizeof(argv1[2]));
+                        strcpy(prompt, argv1[2]);
+                    }
+                }
+            }
+            continue;
+        }
+
         /* for commands not part of the shell command language */
 
         if (fork() == 0) // > >> 2> 2>>
@@ -122,14 +155,15 @@ int main()
                 {
                     fd = creat(outfile, 0660);
                 }
-            }
-            if (redirect == 2)
-            {
-                close(STDERR_FILENO);
-            }
-            else
-            {
-                close(STDOUT_FILENO);
+
+                if (redirect == 2)
+                {
+                    close(STDERR_FILENO);
+                }
+                else
+                {
+                    close(STDOUT_FILENO);
+                }
             }
 
             dup(fd);
@@ -159,11 +193,18 @@ int main()
                 execvp(argv2[0], argv2);
             }
             else
+            {
+                printf("Got execvp\n");
                 execvp(argv1[0], argv1);
+            }
         }
         /* parent continues over here... */
         /* waits for child to exit if required */
         if (amper == 0)
             retid = wait(&status);
+    }
+    if (prompt != NULL)
+    {
+        free(prompt);
     }
 }
