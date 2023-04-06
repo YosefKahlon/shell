@@ -57,16 +57,18 @@ int main()
         }
 
         /* Execute the last command */
-        if (stack_commands->size > 0)
+/* Execute the last command */
+        if ((strcmp(command, "!!") == EQUAL))
         {
-            if ((strcmp(command, "!!") == EQUAL))
+            if (stack_commands->size > 0)
             {
                 strcpy(command, top(stack_commands));
+                printf("%s\n", top(stack_commands));
             }
-            else
-            {
-                push(stack_commands, command);
-            }
+        }
+        else
+        {
+            push(stack_commands, command);
         }
 
         piping = 0;
