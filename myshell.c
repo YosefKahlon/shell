@@ -57,7 +57,7 @@ int main()
         }
 
         /* Execute the last command */
-/* Execute the last command */
+
         if ((strcmp(command, "!!") == EQUAL))
         {
             if (stack_commands->size > 0)
@@ -149,7 +149,7 @@ int main()
             redirect = 0;
 
         // q2. -------------------prompt--------------------
-        if (strcmp(argv1[1], "=") == EQUAL)
+        if (argc1 > 1 && strcmp(argv1[1], "=") == EQUAL)
         {
             printf("found the =\n");
             if (strcmp(argv1[0], "prompt") == EQUAL)
