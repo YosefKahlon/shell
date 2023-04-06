@@ -31,7 +31,7 @@ where users can enter commands and receive output from the system.
 ## Features
 The shell includes the following features, which are designed to emulate the behavior of a Linux terminal:
 
-* Redirecting output: Users can redirect the output of a command to a file using >, or append the output to a file using >>. For example, ls -l > output.txt will redirect the output of the ls command to a file named output.txt.
+* Redirecting output: Users can redirect the output of a command to a file using >, For example, ls -l > output.txt will redirect the output of the ls command to a file named output.txt.
 
 * Error redirection: Users can redirect the error output of a command to a file using 2>. For example, ls nofile 2> errors.txt will redirect the error output of the ls command to a file named errors.txt.
 
