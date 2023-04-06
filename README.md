@@ -36,8 +36,8 @@ The shell includes the following features, which are designed to emulate the beh
 * Error redirection: Users can redirect the error output of a command to a file using 2>. For example, ls nofile 2> errors.txt will redirect the error output of the ls command to a file named errors.txt.
 
 * Appending to files: Users can append to an existing file using >>. For example, ls -l >> output.txt will append the output of the ls command to a file named output.txt.
-* Command to change prompt: Users can change the prompt using the prompt command. For example, 'prompt = hi' will set the prompt to 'hi
-* echo command to print arguments
+* Command to change prompt: Users can change the prompt using the prompt command. For example, 'prompt = hi' will set the prompt to 'hi'.
+* echo command to print arguments.
 * echo $? will print the status of the last command, where 0 indicates success.
 * Change the working directory with the cd command. For example, cd mydir will change the working directory to 'mydir'.
 * Repeat the last command using the !! command.
