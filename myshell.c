@@ -38,6 +38,7 @@ int main()
 
     while (1)
     {
+
         printf("%s: ", prompt);
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
@@ -116,6 +117,8 @@ int main()
             argv1[argc1 - 2] = NULL;
             outfile = argv1[argc1 - 1];
         }
+
+        //q1. -------------------------------------------------
         else if (argc1 > 1 && !strcmp(argv1[argc1 - 2], ">>"))
         {
             redirect = 1;
@@ -179,11 +182,11 @@ int main()
 
             continue;
         }
-
+        //q3. ----------------------echo---------------------------------------------
         if (strcmp(argv1[0], "echo") == EQUAL)
         {
             // todo null check
-
+        //q4. --------------------status-----------------------------------------------
             if (strcmp(argv1[i - 1], "$?") == EQUAL)
             {
                 check_status = 1;
@@ -203,6 +206,13 @@ int main()
                 
             }
             
+        }
+
+        // q5. ---------------------cd--------------------------------
+        if(strcmp(argv1[0], "cd") == EQUAL){
+            if (argv1[1] != NULL) {
+                chdir(argv1[1]);
+            }
         }
 
         /* for commands not part of the shell command language */
