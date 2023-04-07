@@ -32,16 +32,18 @@ int main()
     char *last_command = NULL;
     char *prompt = "hello";
     char str_status[10];
+    char *args[10] = {"sh", "-c", ""};
 
     int check_status = 0;
     char variable[256];
 
     while (1)
     {
-
+        // printf("%d \n",amper);
         printf("%s: ", prompt);
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
+        printf("---------------------- Got input \n");
 
         /* Is command empty */
         if (command[0] == '\0')
@@ -64,10 +66,6 @@ int main()
             {
                 strcpy(command, top(stack_commands));
                 printf("%s\n", top(stack_commands));
-            }
-            else
-            {
-                continue;
             }
         }
         else
@@ -152,18 +150,6 @@ int main()
         else
             redirect = 0;
 
-        /* ------------------- READ -------------------- */
-        if (argc1 > 1 && strcmp(argv1[0], "read") == EQUAL)
-        {
-            char key[10];
-            strcpy(key, argv1[1]);
-            fgets(command, 1024, stdin);
-            command[strlen(command) - 1] = '\0';
-            setenv(key, command, 1);
-
-            continue;
-        }
-
         // q2. -------------------prompt--------------------
         if (argc1 > 1 && strcmp(argv1[1], "=") == EQUAL)
         {
@@ -189,49 +175,90 @@ int main()
             }
             else if (argv1[0][0] == VAR_TAG) /* save variables in the hashtable */
             {
+                printf("We have var here\n");
                 if (argv1[2] != NULL)
                 {
 
                     setenv(strdup(argv1[0] + 1), argv1[2], 1);
-                }
-            }
+                    printf("did setenv\n");
 
-            continue;
+                    // put(vartbl, argv1[0], argv1[2]);
+                }
+                // char *test[] = {"sh", "-c", "echo $person", NULL};
+                // printf("set env on \n");
+                // execvp(test[0], test);
+                continue;
+                // printf("this is the var we saved: ");
+                // printf(" - %s\n", get(vartbl, argv1[0]));
+            }
         }
+
+        if (strcmp(argv1[0], "read") == EQUAL)
+        {
+            continue;
+            // if (argv1[1] != NULL && argv1[2] == NULL)
+            // {
+            //     char str_read[1024];
+            //     char named_var[256] = "$";
+            //     strcat(named_var, argv1[1]);
+            //     fgets(str_read, 1024, stdin);
+            //     put(vartbl, named_var, str_read);
+            //     printf("this is the var we saved: ");
+            //     printf(" - %s\n", get(vartbl, named_var));
+            // }
+        }
+
         // q3. ----------------------echo---------------------------------------------
         if (strcmp(argv1[0], "echo") == EQUAL)
         {
             // todo null check
-            // q4. --------------------status-----------------------------------------------
+            // q4. -------------------- Echo Var Methods -----------------------------------------------
             if (strcmp(argv1[i - 1], "$?") == EQUAL)
             {
                 check_status = 1;
                 sprintf(str_status, "%d", WEXITSTATUS(status));
                 strcpy(argv1[i - 1], str_status);
             }
-            else if (argv1[1] != NULL)
+            // else if (argv1[1] != NULL && argv1[2] == NULL)
+            // {
+            //     printf("trying to assign var\n");
+            //     strcpy(variable, argv1[1]);
+            //     printf("successfuly assigned var\n");
+            //     if (variable[0] == VAR_TAG)
+            //     {
+            //         printf("trying to access map\n");
+            //         if (get(vartbl, variable) != NULL)
+            //         {
+            //             strcat(argv1[0], " ");
+            //             strcat(argv1[0], get(vartbl, variable));
+            //             argv1[0] = NULL;
+            //         }
+            //     }
+            // }
+            else if (argv1[1] != NULL && argv1[2] == NULL)
             {
+                printf("trying to assign var\n");
                 strcpy(variable, argv1[1]);
-
-                if (variable[0] == VAR_TAG  && argv1[2] == NULL)
+                printf("successfuly assigned var\n");
+                if (variable[0] == VAR_TAG)
                 {
-
-
+                    // dumb assignments, needs to be smoother.
+                    // strcat(argv1[0], " ");
+                    // strcat(argv1[0], variable);
+                    // argv1[2] = variable;
+                    // strcpy(argv1[2], argv1[0]);
+                    // // argv1[2] = args[2];
+                    // strcpy(argv1[0], "sh");
+                    // strcpy(argv1[1], "-c");
                     char *value = getenv(strdup(variable + 1));
                     if (value != NULL)
                     {
-                        printf("%s\n", value);
+                        printf("%s\n",value);
                     }
-                }
-                else
-                {
-                    for (size_t i = 1; i < argc1; i++)
-                    {
-                        printf("%s ", argv1[i]);
-                    }
-                    printf("\n");
-                }
+                    
+                } 
             }
+            printf("command is %s, %s, %s \n", argv1[0], argv1[1], argv1[2]);
             continue;
         }
 
@@ -311,7 +338,9 @@ int main()
         /* parent continues over here... */
         /* waits for child to exit if required */
         if (amper == 0)
+        {
             retid = wait(&status);
+        }
     }
 
     // operations at the end of the program.
