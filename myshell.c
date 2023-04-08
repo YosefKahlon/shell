@@ -28,12 +28,9 @@ int main()
 
     char path[256];
     int flag_prompt = 0;
-    int was_command = 0;
-    char *last_command = NULL;
     char *prompt = "hello";
     char str_status[10];
 
-    int check_status = 0;
     char variable[256];
 
     while (1)
@@ -152,6 +149,7 @@ int main()
         else
             redirect = 0;
 
+
         /* ------------------- READ -------------------- */
         if (argc1 > 1 && strcmp(argv1[0], "read") == EQUAL)
         {
@@ -205,7 +203,7 @@ int main()
             // q4. --------------------status-----------------------------------------------
             if (strcmp(argv1[i - 1], "$?") == EQUAL)
             {
-                check_status = 1;
+                
                 sprintf(str_status, "%d", WEXITSTATUS(status));
                 strcpy(argv1[i - 1], str_status);
             }

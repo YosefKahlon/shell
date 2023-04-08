@@ -13,37 +13,51 @@
 #define MAX_SIZE 50
 #define VAR_TAG '$'
 
-int main()
+#define CMD_LEN 10
+
+char **tokenizer(char *command, int *argc)
 {
+
+    char **args = malloc(CMD_LEN * sizeof(char *));
+    char *token = strtok(command, " ");
+    int i = 0;
+
+    while (token != NULL)
+    { 
+        args[i++] = token;
+        token = strtok(NULL, " ");
+    }
+    args[i] = NULL;
+    *argc = i;
+    printf("from function = %s\n argc = %d ", command, *argc);
+    return args;
+}
+
+int main()
+{ 
     Stack *stack_commands = create_stack();
-    VarMap *vartbl = createVarMap(MAX_SIZE);
 
     char command[1024];
     char *token;
     int i;
     char *outfile;
-    int fd, amper, redirect, filwrite, piping, retid, status, argc1;
+    int fd, amper, redirect, filwrite, num_of_pipes, retid, status, argc1;
     int fildes[2];
-    char *argv1[10], *argv2[10];
+    char *argv2[10];
 
     char path[256];
     int flag_prompt = 0;
-    int was_command = 0;
-    char *last_command = NULL;
     char *prompt = "hello";
     char str_status[10];
-    char *args[10] = {"sh", "-c", ""};
 
-    int check_status = 0;
     char variable[256];
 
     while (1)
     {
-        // printf("%d \n",amper);
+
         printf("%s: ", prompt);
         fgets(command, 1024, stdin);
         command[strlen(command) - 1] = '\0';
-        printf("---------------------- Got input \n");
 
         /* Is command empty */
         if (command[0] == '\0')
@@ -67,207 +81,223 @@ int main()
                 strcpy(command, top(stack_commands));
                 printf("%s\n", top(stack_commands));
             }
+            else
+            {
+                continue;
+            }
         }
         else
         {
             push(stack_commands, command);
         }
 
-        piping = 0;
-        /* parse command line */
-        i = 0;
-        token = strtok(command, " ");
-        while (token != NULL)
+        /* check how many pipes in the command */
+        num_of_pipes = 0;
+        for (size_t i = 0; command[i] != '\0'; i++)
         {
-            argv1[i] = token;
-            token = strtok(NULL, " ");
-            i++;
-            if (token && !strcmp(token, "|"))
+            if (command[i] == '|')
             {
-                piping = 1;
-                break;
+                num_of_pipes++;
             }
         }
-        argv1[i] = NULL;
-        argc1 = i;
+        printf("num pipes -> %d \n", num_of_pipes);
 
-        /* Does command contain pipe */
-        if (piping)
+        /* devide all the commands between pipes */
+        char **argv[num_of_pipes + 1];
+        int argc[num_of_pipes + 1];
+
+        i = 0;
+        char *cmd = command;
+        
+        while ((token = strsep(&cmd, "|")) != NULL)
         {
-            i = 0;
-            while (token != NULL)
-            {
-                token = strtok(NULL, " ");
-                argv2[i] = token;
-                i++;
-            }
-            argv2[i] = NULL;
+            argv[i] = tokenizer(token, &argc[i]);
+            printf("token = %s\n",token);
+            i++;
         }
+        argv[i] = NULL;
+            printf("token number %d -> %s --- argc : %d \n", i , token, argc[i]);
+        printf("i = %d\n", i);
+        /* print the pipe command to test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` */
+        for (size_t j = 0; j < i; j++)
+        {
+            for (size_t k = 0; k < argc[j]; k++)
+            {
+                printf("%s ", argv[j][k]);
+            }
+
+            printf("| ");
+            
+            
+        }
+            printf("\n");
+        break;
+        
+
+        // /* parse command line */
+        // i = 0;
+        // token = strtok(command, " ");
+        // while (token != NULL)
+        // {
+        //     argv1[i] = token;
+        //     token = strtok(NULL, " ");
+        //     i++;
+        //     if (token && !strcmp(token, "|"))
+        //     {
+        //         num_of_pipes = 1;
+        //         break;
+        //     }
+        // }
+        // argv[i] = NULL;
+        // argc1 = i;
+
+        // /* Does command contain pipe */
+        // if (num_of_pipes)
+        // {
+        //     i = 0;
+        //     while (token != NULL)
+        //     {
+        //         token = strtok(NULL, " ");
+        //         argv2[i] = token;
+        //         i++;
+        //     }
+        //     argv2[i] = NULL;
+        // }
 
         /* Does command line end with & */
-        if (!strcmp(argv1[argc1 - 1], "&"))
+        if (!strcmp(argv[argc1 - 1], "&"))
         {
             amper = 1;
-            argv1[argc1 - 1] = NULL;
+            argv[argc1 - 1] = NULL;
         }
         else
             amper = 0;
 
         // Checking all the redirect flags
-        if (argc1 > 1 && !strcmp(argv1[argc1 - 2], ">"))
+        if (argc1 > 1 && !strcmp(argv[argc1 - 2], ">"))
         {
             redirect = 1;
             filwrite = 0;
-            argv1[argc1 - 2] = NULL;
-            outfile = argv1[argc1 - 1];
+            argv[argc1 - 2] = NULL;
+            outfile = argv[argc1 - 1];
         }
 
         // q1. -------------------------------------------------
-        else if (argc1 > 1 && !strcmp(argv1[argc1 - 2], ">>"))
+        else if (argc1 > 1 && !strcmp(argv[argc1 - 2], ">>"))
         {
             redirect = 1;
             filwrite = 1;
 
-            argv1[argc1 - 2] = NULL;
-            outfile = argv1[argc1 - 1];
+            argv[argc1 - 2] = NULL;
+            outfile = argv[argc1 - 1];
         }
-        else if (argc1 > 1 && !strcmp(argv1[argc1 - 2], "2>"))
+        else if (argc1 > 1 && !strcmp(argv[argc1 - 2], "2>"))
         {
             redirect = 2;
             filwrite = 0;
 
-            argv1[argc1 - 2] = NULL;
-            outfile = argv1[argc1 - 1];
+            argv[argc1 - 2] = NULL;
+            outfile = argv[argc1 - 1];
         }
-        else if (argc1 > 1 && !strcmp(argv1[argc1 - 2], "2>>"))
+        else if (argc1 > 1 && !strcmp(argv[argc1 - 2], "2>>"))
         {
             redirect = 2;
             filwrite = 1;
 
-            argv1[argc1 - 2] = NULL;
-            outfile = argv1[argc1 - 1];
+            argv[argc1 - 2] = NULL;
+            outfile = argv[argc1 - 1];
         }
         else
             redirect = 0;
 
+        /* ------------------- READ -------------------- */
+        if (argc1 > 1 && strcmp(argv[0], "read") == EQUAL)
+        {
+            char key[10];
+            strcpy(key, argv[1]);
+            fgets(command, 1024, stdin);
+            command[strlen(command) - 1] = '\0';
+            setenv(key, command, 1);
+
+            continue;
+        }
+
         // q2. -------------------prompt--------------------
-        if (argc1 > 1 && strcmp(argv1[1], "=") == EQUAL)
+        if (argc1 > 1 && strcmp(argv[1], "=") == EQUAL)
         {
             printf("found the =\n");
-            if (strcmp(argv1[0], "prompt") == EQUAL)
+            if (strcmp(argv[0], "prompt") == EQUAL)
             {
-                if (argv1[2] != NULL)
+                if (argv[2] != NULL)
                 {
                     if (flag_prompt == 0)
                     {
                         // free(prompt);
-                        prompt = (char *)malloc(sizeof(argv1[2]));
-                        strcpy(prompt, argv1[2]);
+                        prompt = (char *)malloc(sizeof(argv[2]));
+                        strcpy(prompt, argv[2]);
                         flag_prompt = 1;
                     }
                     else
                     {
                         free(prompt);
-                        prompt = (char *)malloc(sizeof(argv1[2]));
-                        strcpy(prompt, argv1[2]);
+                        prompt = (char *)malloc(sizeof(argv[2]));
+                        strcpy(prompt, argv[2]);
                     }
                 }
             }
-            else if (argv1[0][0] == VAR_TAG) /* save variables in the hashtable */
+            else if (argv[0][0] == VAR_TAG)
             {
-                printf("We have var here\n");
-                if (argv1[2] != NULL)
+                if (argv[2] != NULL)
                 {
 
-                    setenv(strdup(argv1[0] + 1), argv1[2], 1);
-                    printf("did setenv\n");
-
-                    // put(vartbl, argv1[0], argv1[2]);
+                    setenv(strdup(argv[0] + 1), argv[2], 1);
                 }
-                // char *test[] = {"sh", "-c", "echo $person", NULL};
-                // printf("set env on \n");
-                // execvp(test[0], test);
-                continue;
-                // printf("this is the var we saved: ");
-                // printf(" - %s\n", get(vartbl, argv1[0]));
             }
-        }
 
-        if (strcmp(argv1[0], "read") == EQUAL)
-        {
             continue;
-            // if (argv1[1] != NULL && argv1[2] == NULL)
-            // {
-            //     char str_read[1024];
-            //     char named_var[256] = "$";
-            //     strcat(named_var, argv1[1]);
-            //     fgets(str_read, 1024, stdin);
-            //     put(vartbl, named_var, str_read);
-            //     printf("this is the var we saved: ");
-            //     printf(" - %s\n", get(vartbl, named_var));
-            // }
         }
-
         // q3. ----------------------echo---------------------------------------------
-        if (strcmp(argv1[0], "echo") == EQUAL)
+        if (strcmp(argv[0], "echo") == EQUAL)
         {
             // todo null check
-            // q4. -------------------- Echo Var Methods -----------------------------------------------
-            if (strcmp(argv1[i - 1], "$?") == EQUAL)
+            // q4. --------------------status-----------------------------------------------
+            if (strcmp(argv[i - 1], "$?") == EQUAL)
             {
-                check_status = 1;
+
                 sprintf(str_status, "%d", WEXITSTATUS(status));
-                strcpy(argv1[i - 1], str_status);
+                strcpy(argv[i - 1], str_status);
             }
-            // else if (argv1[1] != NULL && argv1[2] == NULL)
-            // {
-            //     printf("trying to assign var\n");
-            //     strcpy(variable, argv1[1]);
-            //     printf("successfuly assigned var\n");
-            //     if (variable[0] == VAR_TAG)
-            //     {
-            //         printf("trying to access map\n");
-            //         if (get(vartbl, variable) != NULL)
-            //         {
-            //             strcat(argv1[0], " ");
-            //             strcat(argv1[0], get(vartbl, variable));
-            //             argv1[0] = NULL;
-            //         }
-            //     }
-            // }
-            else if (argv1[1] != NULL && argv1[2] == NULL)
+            else if (argv[1] != NULL)
             {
-                printf("trying to assign var\n");
-                strcpy(variable, argv1[1]);
-                printf("successfuly assigned var\n");
-                if (variable[0] == VAR_TAG)
+                strcpy(variable, argv[1]);
+
+                if (variable[0] == VAR_TAG && argv[2] == NULL)
                 {
-                    // dumb assignments, needs to be smoother.
-                    // strcat(argv1[0], " ");
-                    // strcat(argv1[0], variable);
-                    // argv1[2] = variable;
-                    // strcpy(argv1[2], argv1[0]);
-                    // // argv1[2] = args[2];
-                    // strcpy(argv1[0], "sh");
-                    // strcpy(argv1[1], "-c");
+
                     char *value = getenv(strdup(variable + 1));
                     if (value != NULL)
                     {
-                        printf("%s\n",value);
+                        printf("%s\n", value);
                     }
-                    
-                } 
+                }
+                else
+                {
+                    for (size_t i = 1; i < argc1; i++)
+                    {
+                        printf("%s ", argv[i]);
+                    }
+                    printf("\n");
+                }
             }
-            printf("command is %s, %s, %s \n", argv1[0], argv1[1], argv1[2]);
             continue;
         }
 
         // q5. ---------------------cd--------------------------------
-        if (strcmp(argv1[0], "cd") == EQUAL)
+        if (strcmp(argv[0], "cd") == EQUAL)
         {
-            if (argv1[1] != NULL)
+            if (argv[1] != NULL)
             {
-                chdir(argv1[1]);
+                chdir(argv[1]);
             }
         }
 
@@ -305,7 +335,7 @@ int main()
                 /* stdout is now redirected */
             }
 
-            if (piping)
+            if (num_of_pipes)
             {
                 pipe(fildes);
                 if (fork() == 0)
@@ -317,7 +347,7 @@ int main()
                     close(fildes[0]);
                     /* stdout now goes to pipe */
                     /* child process does command */
-                    execvp(argv1[0], argv1);
+                    execvp(argv[0], argv);
                 }
                 /* 2nd command component of command line */
                 close(STDIN_FILENO);
@@ -332,23 +362,21 @@ int main()
                 // printf("Got execvp\n");
                 // printf("%s\n", argv1[0]);
                 // printf("%s\n", argv1[1]);
-                execvp(argv1[0], argv1);
+                execvp(argv[0], argv);
             }
         }
         /* parent continues over here... */
         /* waits for child to exit if required */
         if (amper == 0)
-        {
             retid = wait(&status);
-        }
     }
 
     // operations at the end of the program.
-    if (prompt != NULL)
-    {
-        free(prompt);
-    }
+    // if (prompt != NULL)
+    // {
+    //     free(prompt);
+    // }
 
     destroy_stack(stack_commands);
-    destroyVarMap(vartbl);
+    // destroyVarMap(vartbl);
 }
