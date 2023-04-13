@@ -23,7 +23,7 @@ char **tokenizer(char *command, int *argc)
     int i = 0;
 
     while (token != NULL)
-    { 
+    {
         args[i++] = token;
         token = strtok(NULL, " ");
     }
@@ -34,7 +34,7 @@ char **tokenizer(char *command, int *argc)
 }
 
 int main()
-{ 
+{
     Stack *stack_commands = create_stack();
 
     char command[1024];
@@ -42,7 +42,7 @@ int main()
     int i;
     char *outfile;
     int fd, amper, redirect, filwrite, num_of_pipes, retid, status, argc1;
-    int fildes[2];
+    
     char *argv2[10];
 
     char path[256];
@@ -108,15 +108,15 @@ int main()
 
         i = 0;
         char *cmd = command;
-        
+
         while ((token = strsep(&cmd, "|")) != NULL)
         {
             argv[i] = tokenizer(token, &argc[i]);
-            printf("token = %s\n",token);
+            printf("token = %s\n", token);
             i++;
         }
         argv[i] = NULL;
-            printf("token number %d -> %s --- argc : %d \n", i , token, argc[i]);
+        printf("token number %d -> %s --- argc : %d \n", i, token, argc[i]);
         printf("i = %d\n", i);
         /* print the pipe command to test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` */
         for (size_t j = 0; j < i; j++)
@@ -127,12 +127,68 @@ int main()
             }
 
             printf("| ");
-            
-            
         }
-            printf("\n");
-        break;
+        printf("\n");
+
+        pid_t pid;
+        int fildes[2];
+        int prev_fd = 0;
+
+        for (size_t i = 0; i <= num_of_pipes; i++)
+        {
+            // open pipe
+            if (pipe(fildes) == -1) 
+            {
+                perror("pipe");
+                exit(EXIT_FAILURE);
+            }
+
+            pid = fork();
+            
+            if (pid == -1) {
+                perror("fork");
+                exit(EXIT_FAILURE);
+            }
+
+            if(pid == 0) {
+                if (i < num_of_pipes) {
+                    if(dup2(fildes[1], STDOUT_FILENO) == -1) {
+                        perror("dup2");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                if (i > 0) {
+                    if(dup2(prev_fd, STDIN_FILENO) == -1) {
+                        perror("dup2");
+                        exit(EXIT_FAILURE);
+                    }
+                    close(prev_fd);
+                }
+                if (execvp(argv[i][0], argv[i]) == -1) {
+                    perror("execvp");
+                    exit(EXIT_FAILURE);
+                }
+                close(fildes[1]);
+                exit(EXIT_SUCCESS);
+
+                // if(i > 0) {
+                //     close(prev_fd);
+                // }
+                // prev_fd = fildes[0];
+            }
+            close(fildes[1]);
+            prev_fd = fildes[0];
+        }
+
+        for (size_t i = 0; i <= num_of_pipes; i++)
+        {
+            wait(NULL);
+        }
         
+        
+
+        
+        break;
 
         // /* parse command line */
         // i = 0;
@@ -369,6 +425,12 @@ int main()
         /* waits for child to exit if required */
         if (amper == 0)
             retid = wait(&status);
+        
+        // Free the allocated memory for the arguments
+        for (i = 0; i <= num_of_pipes; i++)
+        {
+            free(argv[i]);
+        }
     }
 
     // operations at the end of the program.
