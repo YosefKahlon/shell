@@ -1,11 +1,13 @@
-total 152
+total 172
+-rwxrwxr-x 1 barak barak 19840 Apr  8 19:44 dummy
 -rw-rw---- 1 barak barak   118 Apr  3 23:19 fileerr.txt
--rw-rw-r-- 1 barak barak     0 Apr  7 18:32 filetest.txt
+-rw-rw-r-- 1 barak barak     0 Apr 13 19:58 filetest.txt
 -rw-rw---- 1 barak barak   650 Apr  3 23:17 file.txt
 -rwxrwxr-x 1 barak barak 28576 Apr  7 15:37 myshell
--rwxrwxr-x 1 barak barak 28464 Apr  7 14:56 prev_work
+-rwxrwxr-x 1 barak barak 28384 Apr 13 17:24 prev_work
 -rwxrwxr-x 1 barak barak 21424 Apr  3 21:27 shell
 -rwxrwxr-x 1 barak barak 19480 Apr  3 20:58 shell1
 -rwxrwxr-x 1 barak barak 19864 Apr  3 21:33 shell2
 -rw-rw---- 1 barak barak   220 Apr  3 21:33 shell2file.txt
+-rw-rw-r-- 1 barak barak     0 Apr  7 18:34 sortedfile.txt
 -rwxrwxr-x 1 barak barak 19432 Apr  6 20:43 var_table

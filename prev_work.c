@@ -41,8 +41,8 @@ int main()
     char *token;
     int i;
     char *outfile;
-    int fd, amper, redirect, filwrite, num_of_pipes, retid, status, argc1;
-    
+    int fd, amper, redirect, filwrite, num_of_pipes, retid, status;
+
     char *argv2[10];
 
     char path[256];
@@ -136,45 +136,222 @@ int main()
 
         for (size_t i = 0; i <= num_of_pipes; i++)
         {
+            /* =================================== All The Commands ===================================*/
+
+            /* ------------------- READ -------------------- */
+            if (argc[i] > 1 && strcmp(argv[i][0], "read") == EQUAL)
+            {
+                char key[10];
+                strcpy(key, argv[i][1]);
+                fgets(command, 1024, stdin);
+                command[strlen(command) - 1] = '\0';
+                setenv(key, command, 1);
+
+                continue;
+            }
+
+            // q2. -------------------prompt--------------------
+            if (argc[i] > 1 && strcmp(argv[i][1], "=") == EQUAL)
+            {
+                printf("found the =\n");
+                if (strcmp(argv[i][0], "prompt") == EQUAL)
+                {
+                    if (argv[i][2] != NULL)
+                    {
+                        if (flag_prompt == 0)
+                        {
+                            // free(prompt);
+                            prompt = (char *)malloc(sizeof(argv[i][2]));
+                            strcpy(prompt, argv[i][2]);
+                            flag_prompt = 1;
+                        }
+                        else
+                        {
+                            free(prompt);
+                            prompt = (char *)malloc(sizeof(argv[i][2]));
+                            strcpy(prompt, argv[i][2]);
+                        }
+                    }
+                }
+                else if (argv[i][0][0] == VAR_TAG)
+                {
+                    if (argv[i][2] != NULL)
+                    {
+
+                        setenv(strdup(argv[i][0] + 1), argv[i][2], 1);
+                    }
+                }
+
+                continue;
+            }
+            // q3. ----------------------echo---------------------------------------------
+            if (strcmp(argv[i][0], "echo") == EQUAL)
+            {
+                // todo null check
+                // q4. --------------------status-----------------------------------------------
+                if (strcmp(argv[i][argc[i] - 1], "$?") == EQUAL)
+                {
+
+                    sprintf(str_status, "%d", WEXITSTATUS(status));
+                    strcpy(argv[i][argc[i] - 1], str_status);
+                }
+                else if (argv[i][1] != NULL)
+                {
+                    strcpy(variable, argv[i][1]);
+
+                    if (variable[0] == VAR_TAG && argv[i][2] == NULL)
+                    {
+
+                        char *value = getenv(strdup(variable + 1));
+                        if (value != NULL)
+                        {
+                            printf("%s\n", value);
+                        }
+                    }
+                    else
+                    {
+                        for (size_t t = 1; t < argc[i]; t++)
+                        {
+                            printf("%s ", argv[i][t]);
+                        }
+                        printf("\n");
+                    }
+                }
+                continue;
+            }
+
+            // q5. ---------------------cd--------------------------------
+            if (strcmp(argv[i][0], "cd") == EQUAL)
+            {
+                if (argv[i][1] != NULL)
+                {
+                    chdir(argv[i][1]);
+                }
+                continue;
+            }
+
+            /* =================================== END OF ALL COMMANDS =================================== */
+
             // open pipe
-            if (pipe(fildes) == -1) 
+            if (pipe(fildes) == -1)
             {
                 perror("pipe");
                 exit(EXIT_FAILURE);
             }
-
+            /* ================== FORK ================== */
             pid = fork();
-            
-            if (pid == -1) {
+
+            if (pid == -1)
+            {
                 perror("fork");
                 exit(EXIT_FAILURE);
             }
 
-            if(pid == 0) {
-                if (i < num_of_pipes) {
-                    if(dup2(fildes[1], STDOUT_FILENO) == -1) {
+            if (pid == 0)
+            {
+                if (i < num_of_pipes)
+                {
+                    if (dup2(fildes[1], STDOUT_FILENO) == -1)
+                    {
                         perror("dup2");
                         exit(EXIT_FAILURE);
                     }
                 }
-                if (i > 0) {
-                    if(dup2(prev_fd, STDIN_FILENO) == -1) {
+                if (i > 0)
+                {
+                    if (dup2(prev_fd, STDIN_FILENO) == -1)
+                    {
                         perror("dup2");
                         exit(EXIT_FAILURE);
                     }
                     close(prev_fd);
                 }
-                if (execvp(argv[i][0], argv[i]) == -1) {
+
+                /* Does command line end with & */
+                if (!strcmp(argv[i][argc[i] - 1], "&"))
+                {
+                    amper = 1;
+                    argv[i][argc[i] - 1] = NULL;
+                }
+                else
+                    amper = 0;
+
+                /* =================================== Redirect Check =================================== */
+
+                // Checking all the redirect flags
+                if (argc[i] > 1 && !strcmp(argv[i][argc[i] - 2], ">"))
+                {
+                    redirect = 1;
+                    filwrite = 0;
+                    argv[i][argc[i] - 2] = NULL;
+                    outfile = argv[i][argc[i] - 1];
+                }
+
+                // q1. -------------------------------------------------
+                else if (argc[i] > 1 && !strcmp(argv[i][argc[i] - 2], ">>"))
+                {
+                    redirect = 1;
+                    filwrite = 1;
+
+                    argv[i][argc[i] - 2] = NULL;
+                    outfile = argv[i][argc[i] - 1];
+                }
+                else if (argc[i] > 1 && !strcmp(argv[i][argc[i] - 2], "2>"))
+                {
+                    redirect = 2;
+                    filwrite = 0;
+
+                    argv[i][argc[i] - 2] = NULL;
+                    outfile = argv[i][argc[i] - 1];
+                }
+                else if (argc[i] > 1 && !strcmp(argv[i][argc[i] - 2], "2>>"))
+                {
+                    redirect = 2;
+                    filwrite = 1;
+
+                    argv[i][argc[i] - 2] = NULL;
+                    outfile = argv[i][argc[i] - 1];
+                }
+                else
+                    redirect = 0;
+
+                /* =================================== END OF - Redirect Check =================================== */
+                /* redirection of IO ? */
+                if (redirect)
+                {
+                    if (filwrite == 1)
+                    {
+                        fd = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0660);
+                        if (fd == -1)
+                        {
+                            perror("open");
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                    else
+                    {
+                        fd = creat(outfile, 0660);
+                    }
+
+                    if (redirect == 2)
+                    {
+                        close(STDERR_FILENO);
+                    }
+                    else
+                    {
+                        close(STDOUT_FILENO);
+                    }
+                    dup(fd);
+                    close(fd);
+                } /* stdout is now redirected */
+
+                if (execvp(argv[i][0], argv[i]) == -1)
+                {
                     perror("execvp");
                     exit(EXIT_FAILURE);
                 }
                 close(fildes[1]);
                 exit(EXIT_SUCCESS);
-
-                // if(i > 0) {
-                //     close(prev_fd);
-                // }
-                // prev_fd = fildes[0];
             }
             close(fildes[1]);
             prev_fd = fildes[0];
@@ -184,248 +361,76 @@ int main()
         {
             wait(NULL);
         }
-        
-        
-
-        
-        break;
-
-        // /* parse command line */
-        // i = 0;
-        // token = strtok(command, " ");
-        // while (token != NULL)
-        // {
-        //     argv1[i] = token;
-        //     token = strtok(NULL, " ");
-        //     i++;
-        //     if (token && !strcmp(token, "|"))
-        //     {
-        //         num_of_pipes = 1;
-        //         break;
-        //     }
-        // }
-        // argv[i] = NULL;
-        // argc1 = i;
-
-        // /* Does command contain pipe */
-        // if (num_of_pipes)
-        // {
-        //     i = 0;
-        //     while (token != NULL)
-        //     {
-        //         token = strtok(NULL, " ");
-        //         argv2[i] = token;
-        //         i++;
-        //     }
-        //     argv2[i] = NULL;
-        // }
-
-        /* Does command line end with & */
-        if (!strcmp(argv[argc1 - 1], "&"))
-        {
-            amper = 1;
-            argv[argc1 - 1] = NULL;
-        }
-        else
-            amper = 0;
-
-        // Checking all the redirect flags
-        if (argc1 > 1 && !strcmp(argv[argc1 - 2], ">"))
-        {
-            redirect = 1;
-            filwrite = 0;
-            argv[argc1 - 2] = NULL;
-            outfile = argv[argc1 - 1];
-        }
-
-        // q1. -------------------------------------------------
-        else if (argc1 > 1 && !strcmp(argv[argc1 - 2], ">>"))
-        {
-            redirect = 1;
-            filwrite = 1;
-
-            argv[argc1 - 2] = NULL;
-            outfile = argv[argc1 - 1];
-        }
-        else if (argc1 > 1 && !strcmp(argv[argc1 - 2], "2>"))
-        {
-            redirect = 2;
-            filwrite = 0;
-
-            argv[argc1 - 2] = NULL;
-            outfile = argv[argc1 - 1];
-        }
-        else if (argc1 > 1 && !strcmp(argv[argc1 - 2], "2>>"))
-        {
-            redirect = 2;
-            filwrite = 1;
-
-            argv[argc1 - 2] = NULL;
-            outfile = argv[argc1 - 1];
-        }
-        else
-            redirect = 0;
-
-        /* ------------------- READ -------------------- */
-        if (argc1 > 1 && strcmp(argv[0], "read") == EQUAL)
-        {
-            char key[10];
-            strcpy(key, argv[1]);
-            fgets(command, 1024, stdin);
-            command[strlen(command) - 1] = '\0';
-            setenv(key, command, 1);
-
-            continue;
-        }
-
-        // q2. -------------------prompt--------------------
-        if (argc1 > 1 && strcmp(argv[1], "=") == EQUAL)
-        {
-            printf("found the =\n");
-            if (strcmp(argv[0], "prompt") == EQUAL)
-            {
-                if (argv[2] != NULL)
-                {
-                    if (flag_prompt == 0)
-                    {
-                        // free(prompt);
-                        prompt = (char *)malloc(sizeof(argv[2]));
-                        strcpy(prompt, argv[2]);
-                        flag_prompt = 1;
-                    }
-                    else
-                    {
-                        free(prompt);
-                        prompt = (char *)malloc(sizeof(argv[2]));
-                        strcpy(prompt, argv[2]);
-                    }
-                }
-            }
-            else if (argv[0][0] == VAR_TAG)
-            {
-                if (argv[2] != NULL)
-                {
-
-                    setenv(strdup(argv[0] + 1), argv[2], 1);
-                }
-            }
-
-            continue;
-        }
-        // q3. ----------------------echo---------------------------------------------
-        if (strcmp(argv[0], "echo") == EQUAL)
-        {
-            // todo null check
-            // q4. --------------------status-----------------------------------------------
-            if (strcmp(argv[i - 1], "$?") == EQUAL)
-            {
-
-                sprintf(str_status, "%d", WEXITSTATUS(status));
-                strcpy(argv[i - 1], str_status);
-            }
-            else if (argv[1] != NULL)
-            {
-                strcpy(variable, argv[1]);
-
-                if (variable[0] == VAR_TAG && argv[2] == NULL)
-                {
-
-                    char *value = getenv(strdup(variable + 1));
-                    if (value != NULL)
-                    {
-                        printf("%s\n", value);
-                    }
-                }
-                else
-                {
-                    for (size_t i = 1; i < argc1; i++)
-                    {
-                        printf("%s ", argv[i]);
-                    }
-                    printf("\n");
-                }
-            }
-            continue;
-        }
-
-        // q5. ---------------------cd--------------------------------
-        if (strcmp(argv[0], "cd") == EQUAL)
-        {
-            if (argv[1] != NULL)
-            {
-                chdir(argv[1]);
-            }
-        }
 
         /* for commands not part of the shell command language */
 
-        if (fork() == 0) // > >> 2> 2>>
-        {
-            /* redirection of IO ? */
-            if (redirect)
-            {
-                if (filwrite == 1)
-                {
-                    fd = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0660);
-                    if (fd == -1)
-                    {
-                        perror("open");
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                else
-                {
-                    fd = creat(outfile, 0660);
-                }
+        // if (fork() == 0) // > >> 2> 2>>
+        // {
+        //     /* redirection of IO ? */
+        //     if (redirect)
+        //     {
+        //         if (filwrite == 1)
+        //         {
+        //             fd = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0660);
+        //             if (fd == -1)
+        //             {
+        //                 perror("open");
+        //                 exit(EXIT_FAILURE);
+        //             }
+        //         }
+        //         else
+        //         {
+        //             fd = creat(outfile, 0660);
+        //         }
 
-                if (redirect == 2)
-                {
-                    close(STDERR_FILENO);
-                }
-                else
-                {
-                    close(STDOUT_FILENO);
-                }
-                dup(fd);
-                close(fd);
-                /* stdout is now redirected */
-            }
+        //         if (redirect == 2)
+        //         {
+        //             close(STDERR_FILENO);
+        //         }
+        //         else
+        //         {
+        //             close(STDOUT_FILENO);
+        //         }
+        //         dup(fd);
+        //         close(fd);
+        //         /* stdout is now redirected */
+        //     }
 
-            if (num_of_pipes)
-            {
-                pipe(fildes);
-                if (fork() == 0)
-                {
-                    /* first component of command line */
-                    close(STDOUT_FILENO);
-                    dup(fildes[1]);
-                    close(fildes[1]);
-                    close(fildes[0]);
-                    /* stdout now goes to pipe */
-                    /* child process does command */
-                    execvp(argv[0], argv);
-                }
-                /* 2nd command component of command line */
-                close(STDIN_FILENO);
-                dup(fildes[0]);
-                close(fildes[0]);
-                close(fildes[1]);
-                /* standard input now comes from pipe */
-                execvp(argv2[0], argv2);
-            }
-            else
-            {
-                // printf("Got execvp\n");
-                // printf("%s\n", argv1[0]);
-                // printf("%s\n", argv1[1]);
-                execvp(argv[0], argv);
-            }
-        }
-        /* parent continues over here... */
-        /* waits for child to exit if required */
-        if (amper == 0)
-            retid = wait(&status);
-        
+        //     if (num_of_pipes)
+        //     {
+        //         pipe(fildes);
+        //         if (fork() == 0)
+        //         {
+        //             /* first component of command line */
+        //             close(STDOUT_FILENO);
+        //             dup(fildes[1]);
+        //             close(fildes[1]);
+        //             close(fildes[0]);
+        //             /* stdout now goes to pipe */
+        //             /* child process does command */
+        //             execvp(argv[0], argv);
+        //         }
+        //         /* 2nd command component of command line */
+        //         close(STDIN_FILENO);
+        //         dup(fildes[0]);
+        //         close(fildes[0]);
+        //         close(fildes[1]);
+        //         /* standard input now comes from pipe */
+        //         execvp(argv2[0], argv2);
+        //     }
+        //     else
+        //     {
+        //         // printf("Got execvp\n");
+        //         // printf("%s\n", argv1[0]);
+        //         // printf("%s\n", argv1[1]);
+        //         execvp(argv[0], argv);
+        //     }
+        // }
+        // /* parent continues over here... */
+        // /* waits for child to exit if required */
+        // if (amper == 0)
+        //     retid = wait(&status);
+
         // Free the allocated memory for the arguments
         for (i = 0; i <= num_of_pipes; i++)
         {
