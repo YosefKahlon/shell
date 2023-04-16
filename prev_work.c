@@ -29,7 +29,7 @@ char **tokenizer(char *command, int *argc)
     }
     args[i] = NULL;
     *argc = i;
-    printf("from function = %s\n argc = %d ", command, *argc);
+    // printf("from function = %s\n argc = %d ", command, *argc);
     return args;
 }
 
@@ -41,7 +41,8 @@ int main()
     char *token;
     int i;
     char *outfile;
-    int fd, amper, redirect, filwrite, num_of_pipes, retid, status;
+    int fd, amper, redirect, filwrite, num_of_pipes, retid;
+    int status = 0;
 
     char *argv2[10];
 
@@ -52,24 +53,53 @@ int main()
 
     char variable[256];
 
+    /* if statement check */
+    int active_if = 0;
+    int enter_if = 0;
+    char *_then;
+    char *_else;
+
     while (1)
     {
+        if (!active_if)
+        {
+            printf("%s: ", prompt);
+            fgets(command, 1024, stdin);
+            command[strlen(command) - 1] = '\0';
+        }
+        else
+        {
+            if (!status)
+            {
+                strcpy(command, _then);
+            }
+            else
+            {
+                strcpy(command, _else);
+            }
+            free(_then);
+            free(_else);
+            active_if = 0;
+        }
 
-        printf("%s: ", prompt);
-        fgets(command, 1024, stdin);
-        command[strlen(command) - 1] = '\0';
+        if (strncmp(command, "if ", 3) == EQUAL)
+            {
+                strcpy(command, command + 3);
+                enter_if = 1;
+            }
 
         /* Is command empty */
         if (command[0] == '\0')
         {
             printf("Empty command\n");
+            enter_if = 0;
             continue;
         }
 
         /* Exit command */
         if (strcmp(command, "quit") == EQUAL)
         {
-            exit(0);
+            break;
         }
 
         /* Execute the last command */
@@ -112,12 +142,12 @@ int main()
         while ((token = strsep(&cmd, "|")) != NULL)
         {
             argv[i] = tokenizer(token, &argc[i]);
-            printf("token = %s\n", token);
+            // printf("token = %s\n", token);
             i++;
         }
         argv[i] = NULL;
-        printf("token number %d -> %s --- argc : %d \n", i, token, argc[i]);
-        printf("i = %d\n", i);
+        // printf("token number %d -> %s --- argc : %d \n", i, token, argc[i]);
+        // printf("i = %d\n", i);
         /* print the pipe command to test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` */
         for (size_t j = 0; j < i; j++)
         {
@@ -137,6 +167,60 @@ int main()
         for (size_t i = 0; i <= num_of_pipes; i++)
         {
             /* =================================== All The Commands ===================================*/
+            if (enter_if)
+            {
+                enter_if = 0;
+                
+                char tag[10];
+                fgets(tag, 10, stdin);
+                tag[strlen(tag) - 1] = '\0';
+                if (strcmp(tag, "then") == EQUAL)
+                {
+                    _then = (char *)malloc(1024 * sizeof(char));
+                    fgets(_then, 1024, stdin);
+                    _then[strlen(_then) - 1] = '\0';
+                }
+                else
+                {
+                    printf("invalid syntax \n");
+                    break;
+                }
+
+                fgets(tag, 10, stdin);
+                tag[strlen(tag) - 1] = '\0';
+                if (strcmp(tag, "else") == EQUAL)
+                {
+                    _else = (char *)malloc(1024 * sizeof(char));
+                    fgets(_else, 1024, stdin);
+                    _else[strlen(_else) - 1] = '\0';
+                } else
+                {
+                    printf("invalid syntax \n");
+                    free(_then);
+                    break;
+                }
+
+                fgets(tag, 10, stdin);
+                tag[strlen(tag) - 1] = '\0';
+                if (strcmp(tag, "fi") != EQUAL)
+                {
+                    printf("not finished with fi \n");
+                    free(_then);
+                    free(_else);
+                    break;
+                }
+
+                // printf("%s \n", _then);
+                // printf("%s \n", _else);
+                active_if = 1;
+                
+                /* removing the 'if ' syntax from the command to make it ready for execute */
+                // char *substr = "if ";
+                // printf("the command %s \n", argv[i][0]);
+                // char *pointer_shift = strstr(argv[i][0], substr);
+                // memmove(pointer_shift, pointer_shift + strlen(substr), strlen(pointer_shift + strlen(substr)) + 1);
+
+            }
 
             /* ------------------- READ -------------------- */
             if (argc[i] > 1 && strcmp(argv[i][0], "read") == EQUAL)
@@ -191,7 +275,7 @@ int main()
                 // q4. --------------------status-----------------------------------------------
                 if (strcmp(argv[i][argc[i] - 1], "$?") == EQUAL)
                 {
-
+                    printf("Here called echo $? , status is %d \n", status);
                     sprintf(str_status, "%d", WEXITSTATUS(status));
                     strcpy(argv[i][argc[i] - 1], str_status);
                 }
@@ -359,7 +443,7 @@ int main()
 
         for (size_t i = 0; i <= num_of_pipes; i++)
         {
-            wait(NULL);
+            wait(&status);
         }
 
         /* for commands not part of the shell command language */
