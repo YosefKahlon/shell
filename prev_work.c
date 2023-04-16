@@ -7,13 +7,18 @@
 #include "unistd.h"
 #include <string.h>
 #include "stackCommands.c"
-#include "var_table.c"
 
 #define EQUAL 0
 #define MAX_SIZE 50
 #define VAR_TAG '$'
 
 #define CMD_LEN 10
+
+void sigint_handler(int sig)
+{
+    printf("\nYou typed Control-C!\n");
+    fflush(stdout);
+}
 
 char **tokenizer(char *command, int *argc)
 {
@@ -29,13 +34,14 @@ char **tokenizer(char *command, int *argc)
     }
     args[i] = NULL;
     *argc = i;
-    // printf("from function = %s\n argc = %d ", command, *argc);
     return args;
 }
 
 int main()
 {
     Stack *stack_commands = create_stack();
+
+    signal(SIGINT, sigint_handler);
 
     char command[1024];
     char *token;
@@ -61,11 +67,78 @@ int main()
 
     while (1)
     {
+        int b = 0;
+        int line_up = 0;
+        int cmd_ptr = 0;
+        memset(command, 0, 1024);
         if (!active_if)
         {
+            int c = -1;
             printf("%s: ", prompt);
-            fgets(command, 1024, stdin);
-            command[strlen(command) - 1] = '\0';
+
+            while (!b)
+            {
+                c = getchar();
+                if (c == '\n' && command != NULL)
+                {
+                    break;
+                }
+                if (c == '\033' && stack_commands->size > 0)
+                {
+                    // these two strange prints are from:
+                    // https://itnext.io/overwrite-previously-printed-lines-4218a9563527
+                    // and they delete the previous line
+
+                    printf("\033[1A");
+                    if (line_up)
+                    {
+                        printf("\x1b[2K"); // delete line
+                        printf("\033[1A"); // line up
+                        printf("\x1b[2K"); // delete line
+                    }                      // line up
+                    line_up = 1;
+                    printf("\x1b[2K"); // delete line
+                    printf("%s: ", prompt);
+                    getchar(); // skip the [
+                    switch (getchar())
+                    { // the real value
+                    case 'A':
+                        // code for arrow up
+                        if (cmd_ptr < get_stack_size(stack_commands))
+                        {
+                            cmd_ptr++;
+                        }
+                        strcpy(command, get_element_at(stack_commands, cmd_ptr));
+                        printf("%s\n", command);
+
+                        break;
+                    case 'B':
+                        // code for arrow down
+                        if (cmd_ptr > 1)
+                        {
+                            strcpy(command, get_element_at(stack_commands, --cmd_ptr));
+                            printf("%s\n", command);
+                        }
+                        else
+                        {
+                            memset(command, 0, 1024);
+                            printf("\n");
+                        }
+                        break;
+                    }
+
+                    c = getchar();
+
+                }
+                else if (command != NULL)
+                {
+                    command[0] = c;
+                    fgets(command + 1, 1023, stdin);
+
+                    command[strlen(command) - 1] = '\0';
+                    b = 1;
+                }
+            }
         }
         else
         {
@@ -83,13 +156,13 @@ int main()
         }
 
         if (strncmp(command, "if ", 3) == EQUAL)
-            {
-                strcpy(command, command + 3);
-                enter_if = 1;
-            }
+        {
+            strcpy(command, command + 3);
+            enter_if = 1;
+        }
 
         /* Is command empty */
-        if (command[0] == '\0')
+        if (command[0] == '\0' || command[0] == ('[' || '^'))
         {
             printf("Empty command\n");
             enter_if = 0;
@@ -142,23 +215,20 @@ int main()
         while ((token = strsep(&cmd, "|")) != NULL)
         {
             argv[i] = tokenizer(token, &argc[i]);
-            // printf("token = %s\n", token);
             i++;
         }
         argv[i] = NULL;
-        // printf("token number %d -> %s --- argc : %d \n", i, token, argc[i]);
-        // printf("i = %d\n", i);
-        /* print the pipe command to test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~` */
-        for (size_t j = 0; j < i; j++)
-        {
-            for (size_t k = 0; k < argc[j]; k++)
-            {
-                printf("%s ", argv[j][k]);
-            }
 
-            printf("| ");
-        }
-        printf("\n");
+        // for (size_t j = 0; j < i; j++)
+        // {
+        //     for (size_t k = 0; k < argc[j]; k++)
+        //     {
+        //         printf("%s ", argv[j][k]);
+        //     }
+
+        //     printf("| ");
+        // }
+        // printf("\n");
 
         pid_t pid;
         int fildes[2];
@@ -166,11 +236,11 @@ int main()
 
         for (size_t i = 0; i <= num_of_pipes; i++)
         {
-            /* =================================== All The Commands ===================================*/
+            /* Handling IF/ELSE query */
             if (enter_if)
             {
                 enter_if = 0;
-                
+
                 char tag[10];
                 fgets(tag, 10, stdin);
                 tag[strlen(tag) - 1] = '\0';
@@ -193,7 +263,8 @@ int main()
                     _else = (char *)malloc(1024 * sizeof(char));
                     fgets(_else, 1024, stdin);
                     _else[strlen(_else) - 1] = '\0';
-                } else
+                }
+                else
                 {
                     printf("invalid syntax \n");
                     free(_then);
@@ -210,17 +281,11 @@ int main()
                     break;
                 }
 
-                // printf("%s \n", _then);
-                // printf("%s \n", _else);
                 active_if = 1;
-                
-                /* removing the 'if ' syntax from the command to make it ready for execute */
-                // char *substr = "if ";
-                // printf("the command %s \n", argv[i][0]);
-                // char *pointer_shift = strstr(argv[i][0], substr);
-                // memmove(pointer_shift, pointer_shift + strlen(substr), strlen(pointer_shift + strlen(substr)) + 1);
-
             }
+
+            /* =================================== All The Commands ===================================*/
+            /* for commands not part of the shell command language */
 
             /* ------------------- READ -------------------- */
             if (argc[i] > 1 && strcmp(argv[i][0], "read") == EQUAL)
@@ -271,7 +336,6 @@ int main()
             // q3. ----------------------echo---------------------------------------------
             if (strcmp(argv[i][0], "echo") == EQUAL)
             {
-                // todo null check
                 // q4. --------------------status-----------------------------------------------
                 if (strcmp(argv[i][argc[i] - 1], "$?") == EQUAL)
                 {
@@ -370,6 +434,13 @@ int main()
                     argv[i][argc[i] - 2] = NULL;
                     outfile = argv[i][argc[i] - 1];
                 }
+                //                 else if (argc[i] > 1 && !strcmp(argv[i][argc[i] - 2], "<"))
+                // {
+                //     redirect = 3;
+                //     filwrite = 0;
+                //     argv[i][argc[i] - 2] = NULL;
+                //     outfile = argv[i][argc[i] - 1];
+                // }
 
                 // q1. -------------------------------------------------
                 else if (argc[i] > 1 && !strcmp(argv[i][argc[i] - 2], ">>"))
@@ -443,77 +514,13 @@ int main()
 
         for (size_t i = 0; i <= num_of_pipes; i++)
         {
-            wait(&status);
+            if (amper == 0)
+            {
+                wait(&status);
+            }
         }
 
-        /* for commands not part of the shell command language */
-
-        // if (fork() == 0) // > >> 2> 2>>
-        // {
-        //     /* redirection of IO ? */
-        //     if (redirect)
-        //     {
-        //         if (filwrite == 1)
-        //         {
-        //             fd = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0660);
-        //             if (fd == -1)
-        //             {
-        //                 perror("open");
-        //                 exit(EXIT_FAILURE);
-        //             }
-        //         }
-        //         else
-        //         {
-        //             fd = creat(outfile, 0660);
-        //         }
-
-        //         if (redirect == 2)
-        //         {
-        //             close(STDERR_FILENO);
-        //         }
-        //         else
-        //         {
-        //             close(STDOUT_FILENO);
-        //         }
-        //         dup(fd);
-        //         close(fd);
-        //         /* stdout is now redirected */
-        //     }
-
-        //     if (num_of_pipes)
-        //     {
-        //         pipe(fildes);
-        //         if (fork() == 0)
-        //         {
-        //             /* first component of command line */
-        //             close(STDOUT_FILENO);
-        //             dup(fildes[1]);
-        //             close(fildes[1]);
-        //             close(fildes[0]);
-        //             /* stdout now goes to pipe */
-        //             /* child process does command */
-        //             execvp(argv[0], argv);
-        //         }
-        //         /* 2nd command component of command line */
-        //         close(STDIN_FILENO);
-        //         dup(fildes[0]);
-        //         close(fildes[0]);
-        //         close(fildes[1]);
-        //         /* standard input now comes from pipe */
-        //         execvp(argv2[0], argv2);
-        //     }
-        //     else
-        //     {
-        //         // printf("Got execvp\n");
-        //         // printf("%s\n", argv1[0]);
-        //         // printf("%s\n", argv1[1]);
-        //         execvp(argv[0], argv);
-        //     }
-        // }
-        // /* parent continues over here... */
-        // /* waits for child to exit if required */
-        // if (amper == 0)
-        //     retid = wait(&status);
+        
 
         // Free the allocated memory for the arguments
         for (i = 0; i <= num_of_pipes; i++)
@@ -522,12 +529,11 @@ int main()
         }
     }
 
-    // operations at the end of the program.
+    // // operations at the end of the program.
     // if (prompt != NULL)
     // {
     //     free(prompt);
     // }
 
     destroy_stack(stack_commands);
-    // destroyVarMap(vartbl);
 }

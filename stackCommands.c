@@ -51,6 +51,20 @@ char* top(Stack* stack) {
     return item;
 }
 
+char* get_element_at(Stack* stack, int index) {
+    if (index < 0 || index > stack->size)
+    {
+        // printf("Null Returned\n");
+        return NULL;
+    }
+    // printf("getting element\n");
+    return stack->items[(stack->size) - index];
+}
+
+int get_stack_size(Stack* stack) {
+    return stack->size;
+}
+
 // int main() {
 //     Stack* stack = create_stack();
 
@@ -79,6 +93,8 @@ char* top(Stack* stack) {
 //     push(stack, "hjkl");
 
 //     printf("Top element: %s\n", top(stack));
+
+//     printf("last element %s \n", get_element_at(stack, 19));
 
 //     char* item;
 //     while ((item = pop(stack))) {

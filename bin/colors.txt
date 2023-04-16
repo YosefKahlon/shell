@@ -1,4 +1,0 @@
-blue
-red
-pink
-orange
