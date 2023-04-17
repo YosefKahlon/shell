@@ -46,7 +46,7 @@ The shell includes the following features, which are designed to emulate the beh
 * Adding variables to the shell: Users can add variables to the shell using the following syntax: '$variable=value'. For example, 'person=David' will create a variable named 'person' with the value 'David'.
 * Navigate to the last 20 command with the up and down arrow.
 * Conditional statements: Users can use the 'if' command to create conditional statements. For example, 'if date | grep Fri; then echo "Shabat Shalom"; else echo "Hard way to go"; fi' will print 'Shabat Shalom' if it's a Friday, and 'Hard way to go' otherwise.
-Must be in the exact format -> 
+Must be in the exact format -> \n
 if -command
 then
 -command (single line)
